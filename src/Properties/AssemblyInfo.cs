@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using MelonLoader;
-using OneWayTransfers.src;
+using OneWayTransfers;
 
 [assembly: AssemblyTitle(BuildInfo.Description)]
 [assembly: AssemblyDescription(BuildInfo.Description)]
@@ -10,7 +10,7 @@ using OneWayTransfers.src;
 [assembly: AssemblyTrademark(BuildInfo.Company)]
 [assembly: AssemblyVersion(BuildInfo.Version)]
 [assembly: AssemblyFileVersion(BuildInfo.Version)]
-[assembly: MelonInfo(typeof(OneWayTransfers.src.OneWayTransfers), BuildInfo.Name, BuildInfo.Version, BuildInfo.Author, BuildInfo.DownloadLink)]
+[assembly: MelonInfo(typeof(OneWayTransfers.OneWayTransfers), BuildInfo.Name, BuildInfo.Version, BuildInfo.Author, BuildInfo.DownloadLink)]
 [assembly: MelonColor()]
 
 // Create and Setup a MelonGame Attribute to mark a Melon as Universal or Compatible with specific Games.

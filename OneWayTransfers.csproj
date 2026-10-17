@@ -22,6 +22,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="src\obj\OneWayTransfers.csproj.nuget.dgspec.json" />
+    <None Include="src\obj\OneWayTransfers.csproj.nuget.g.props" />
+    <None Include="src\obj\OneWayTransfers.csproj.nuget.g.targets" />
+    <None Include="src\obj\project.assets.json" />
+    <None Include="src\obj\project.nuget.cache" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>src\ReferencedAssemblies\0Harmony.dll</HintPath>
     </Reference>
