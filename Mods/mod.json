@@ -1,0 +1,8 @@
+{
+    "id": "onewaytransfers",
+    "name": "One-Way Transfers",
+    "author": "GruenerAdler",
+    "version": "1.0.0",
+    "description": "One way fluid gate preventing backflow. Needs SDModKit. Multiplayer: every player needs this mod",
+    "thumbnail": "Thumbnail.png"
+}
