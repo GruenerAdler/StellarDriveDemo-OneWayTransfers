@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <OutputPath>$(SolutionDir)src\Output\</OutputPath>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="src\Assets\OneWayFluidGate.mtl" />
+    <None Remove="src\Assets\OneWayFluidGate.obj" />
+    <None Remove="src\Assets\OneWayFluidGate_Albedo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="src\Assets\OneWayFluidGate.mtl" />
+    <EmbeddedResource Include="src\Assets\OneWayFluidGate.obj" />
+    <EmbeddedResource Include="src\Assets\OneWayFluidGate_Albedo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>src\ReferencedAssemblies\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>src\ReferencedAssemblies\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Items.Model">
+      <HintPath>src\ReferencedAssemblies\Items.Model.dll</HintPath>
+    </Reference>
+    <Reference Include="MelonLoader">
+      <HintPath>src\ReferencedAssemblies\MelonLoader.dll</HintPath>
+    </Reference>
+    <Reference Include="Research">
+      <HintPath>src\ReferencedAssemblies\Research.dll</HintPath>
+    </Reference>
+    <Reference Include="Research.Interface">
+      <HintPath>src\ReferencedAssemblies\Research.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="SDModKit">
+      <HintPath>src\ReferencedAssemblies\SDModKit.dll</HintPath>
+    </Reference>
+    <Reference Include="Ships">
+      <HintPath>src\ReferencedAssemblies\Ships.dll</HintPath>
+    </Reference>
+    <Reference Include="Ships.Interface">
+      <HintPath>src\ReferencedAssemblies\Ships.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Localization">
+      <HintPath>src\ReferencedAssemblies\Unity.Localization.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>src\ReferencedAssemblies\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>src\ReferencedAssemblies\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="WorldTracking.Interface">
+      <HintPath>src\ReferencedAssemblies\WorldTracking.Interface.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy /Y &quot;D:\.Privat\Programmier Stuff\StellarDriveMods\OneWayTransfers\src\Output\netstandard2.1\OneWayTransfers.dll&quot; &quot;D:\SteamLibrary\steamapps\common\StellarDrive Demo\Mods\&quot;" />
+  </Target>
+
+</Project>
