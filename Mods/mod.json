@@ -4,5 +4,7 @@
     "author": "GruenerAdler",
     "version": "1.1.0",
     "description": "One way fluid and signal gate preventing backflow. Needs SDModKit. Multiplayer: every player needs this mod",
+    "ai": "vibecoded",
+    "development": "active",
     "thumbnail": "Thumbnail.png"
 }
