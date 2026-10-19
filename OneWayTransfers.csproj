@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include=".github\workflows\check-development.yml" />
     <None Include="src\obj\OneWayTransfers.csproj.nuget.dgspec.json" />
     <None Include="src\obj\OneWayTransfers.csproj.nuget.g.props" />
     <None Include="src\obj\OneWayTransfers.csproj.nuget.g.targets" />

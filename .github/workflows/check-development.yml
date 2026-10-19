@@ -1,0 +1,67 @@
+
+name: Check Mod Development Status
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-development:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Development-Status prüfen
+        shell: bash
+        run: |
+          set -e
+
+          LAST_COMMIT=$(git log -1 --format=%ct)
+          NOW=$(date +%s)
+
+          # Drei Kalendermonate zurückrechnen
+          LIMIT=$(date -u -d '3 months ago' +%s)
+
+          if [ "$LAST_COMMIT" -lt "$LIMIT" ]; then
+            STATUS="inactive"
+          else
+            STATUS="active"
+          fi
+
+          echo "Letzter Commit: $(date -u -d "@$LAST_COMMIT")"
+          echo "Neuer Status: $STATUS"
+
+          python3 - "$STATUS" <<'PY'
+          import json
+          import sys
+
+          path = "Mods/mod.json"
+          status = sys.argv[1]
+
+          with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+
+          if data.get("development") != status:
+              data["development"] = status
+              with open(path, "w", encoding="utf-8") as f:
+                  json.dump(data, f, indent=2, ensure_ascii=False)
+                  f.write("\n")
+          PY
+
+      - name: Änderungen committen
+        run: |
+          if ! git diff --quiet -- mod.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add mod.json
+            git commit -m "[AUTOMATED] Set development status to inactive"
+            git push
+          fi
