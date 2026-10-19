@@ -4,96 +4,26 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using MelonLoader;
-using SDModKit.Api;
 using SDModKit.Content;
 using SDModKit.Game;
 using SDModKit.Util;
-using Ships.Interface.Model.Parts;
-using Ships.Interface.Model.Parts.Common;
-using Ships.Interface.Settings;
 using Ships.Parts.Common;
 using Ships.Parts.Common.Model.Reactions;
-using Ships.Parts.FluidValve;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace OneWayTransfers
 {
-    public sealed class OneWayMod : SDMod
+    // Change Model from cloned original
+    internal static class PartModel
     {
-        public const ushort PartId = 4711;
-        private const string PartName = "OneWayFluidGate";
-
-        public override string Id => "onewaytransfers";
-        public override string Name => "One-Way Transfers";
-        public override bool HostOnly => true;
-
-        public override void OnRegistered()
+        public static void Replace(GameObject prefab, string donorVisualType, string modelToken, string[] otherTokens, string objectName)
         {
-            CustomParts.Register(new CustomPartDefinition
-            {
-                Id = PartId,
-                Name = PartName,
-                Donor = "FluidValve",
-                BuildMenuAfter = "FluidValve",
-                AutoFinish = false,
-                Configure = Configure
-            });
-        }
-
-        public override void OnWorldEnter()
-        {
-            OneWayResearch.AddToValveNode();
-        }
-
-        private static void Configure(PartSettings settings, GameObject prefab)
-        {
-            settings.fullLabel = "One-Way Fluid Gate";
-            settings.description = "Lets fluid flow in one direction only, from the input to the output, never back.";
-            settings.localizedDescription = null;
-            settings.internalStateClass = "SignalSplitterState";
-            settings.customCreationClass = null;
-
-            RemoveNonFluidSockets(prefab);
-            ReplaceVisual(prefab);
-        }
-
-        private static void RemoveNonFluidSockets(GameObject prefab)
-        {
-            foreach (SocketObject socket in prefab.GetComponentsInChildren<SocketObject>(true).ToList())
-            {
-                if (socket.Type == CableType.Fluid)
-                {
-                    continue;
-                }
-                Object.DestroyImmediate(socket.gameObject);
-            }
-
-            // Sockets
-            SocketObject[] sockets = prefab.GetComponentsInChildren<SocketObject>(true).OrderBy(s => s.Id).ToArray();
-            FieldInfo idField = typeof(SocketObject).GetField("id", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (idField == null)
-            {
-                MelonLogger.Error("OneWayTransfers: field SocketObject.id not found, socket ids not renumbered.");
-                return;
-            }
-            for (int i = 0; i < sockets.Length; i++)
-            {
-                idField.SetValue(sockets[i], (byte)i);
-            }
-            if (sockets.Length != 2)
-            {
-                MelonLogger.Warning("OneWayTransfers: expected exactly 2 fluid sockets, found " + sockets.Length + ".");
-            }
-        }
-
-        private static void ReplaceVisual(GameObject prefab)
-        {
-            FluidValveVisual oldVisual = prefab.GetComponentInChildren<FluidValveVisual>(true);
+            Component oldVisual = FindComponent(prefab, donorVisualType);
             Transform visualRoot = oldVisual != null ? oldVisual.transform : prefab.transform.Find("Visual");
             if (visualRoot == null)
             {
-                MelonLogger.Error("OneWayTransfers: no visual root found on the donor prefab, model not replaced.");
+                MelonLogger.Error("OneWayTransfers: no visual root found on the donor prefab of " + objectName + ", model not replaced.");
                 return;
             }
 
@@ -106,14 +36,14 @@ namespace OneWayTransfers
                 visualRoot.gameObject.AddComponent<DefaultShipPartVisuals>();
             }
 
-            Assembly assembly = typeof(OneWayMod).Assembly;
+            Assembly assembly = typeof(PartModel).Assembly;
             string[] resourceNames = assembly.GetManifestResourceNames();
 
-            string meshName = FindMeshResource(resourceNames);
+            string meshName = FindMeshResource(resourceNames, modelToken, otherTokens);
             Mesh mesh = meshName == null ? null : MeshData.Load(assembly, meshName);
             if (mesh == null)
             {
-                MelonLogger.Error("OneWayTransfers: no usable .obj model found, keeping the donor model. "
+                MelonLogger.Error("OneWayTransfers: no usable .obj model found for " + objectName + ", keeping the donor model. "
                     + "Embedded resources in this dll: [" + string.Join(", ", resourceNames) + "]");
                 return;
             }
@@ -121,19 +51,19 @@ namespace OneWayTransfers
             Material baseMaterial = ContentAssets.Material("PartMetal");
             if (baseMaterial == null)
             {
-                MelonLogger.Error("OneWayTransfers: material PartMetal not found, keeping the donor model.");
+                MelonLogger.Error("OneWayTransfers: material PartMetal not found for " + objectName + ", keeping the donor model.");
                 return;
             }
 
+            string modelBase = Stem(meshName);
             string objText = EmbeddedAssets.Text(assembly, meshName);
             List<string> materialOrder = ReadMaterialOrder(objText);
-            Dictionary<string, string> mtlTextures = ReadMaterialTextureFiles(assembly, resourceNames, objText);
-            string[] pngs = FindPngResources(resourceNames);
-            string modelBase = Stem(meshName);
+            Dictionary<string, string> mtlTextures = ReadMaterialTextureFiles(assembly, resourceNames, objText, modelBase, modelToken);
+            string[] pngs = FindPngResources(resourceNames, modelBase, modelToken, otherTokens);
 
             if (visualRoot == prefab.transform)
             {
-                MelonLogger.Warning("OneWayTransfers: the visual component sits on the prefab root, donor model children are kept.");
+                MelonLogger.Warning("OneWayTransfers: the visual component of " + objectName + " sits on the prefab root, donor model children are kept.");
             }
             else
             {
@@ -143,7 +73,7 @@ namespace OneWayTransfers
                 }
             }
 
-            GameObject model = new GameObject("OneWayGate");
+            GameObject model = new GameObject(objectName);
             model.transform.SetParent(visualRoot, false);
             model.AddComponent<MeshFilter>().sharedMesh = mesh;
 
@@ -153,17 +83,20 @@ namespace OneWayTransfers
             {
                 string materialName = i < materialOrder.Count ? materialOrder[i] : string.Empty;
                 Material material = new Material(baseMaterial);
-                material.name = "OneWayGate_" + i;
-
+                material.name = objectName + "_" + i;
+                if (material.HasProperty("_BaseColor"))
+                {
+                    material.SetColor("_BaseColor", Color.white);
+                }
                 if (material.HasProperty("_Color"))
                 {
                     material.SetColor("_Color", Color.white);
                 }
 
-                string textureResource = PickTexture(materialName, mtlTextures, pngs, modelBase, resourceNames, out string reason);
+                string textureResource = PickTexture(materialName, mtlTextures, pngs, modelBase, resourceNames);
                 if (textureResource == null)
                 {
-                    MelonLogger.Warning("OneWayTransfers: submesh " + i + " (material '" + materialName + "') has no texture.");
+                    MelonLogger.Warning("OneWayTransfers: " + objectName + " submesh " + i + " (material '" + materialName + "') has no texture.");
                 }
                 else
                 {
@@ -172,16 +105,13 @@ namespace OneWayTransfers
                     {
                         MelonLogger.Warning("OneWayTransfers: texture " + textureResource + " could not be loaded.");
                     }
+                    else if (material.HasProperty("_Albedo"))
+                    {
+                        material.SetTexture("_Albedo", albedo);
+                    }
                     else
                     {
-                        if (material.HasProperty("_Albedo"))
-                        {
-                            material.SetTexture("_Albedo", albedo);
-                        }
-                        else
-                        {
-                            material.mainTexture = albedo;
-                        }
+                        material.mainTexture = albedo;
                     }
                 }
                 materials[i] = material;
@@ -189,9 +119,23 @@ namespace OneWayTransfers
             model.AddComponent<MeshRenderer>().sharedMaterials = materials;
         }
 
-        // Textures and Model
+        private static Component FindComponent(GameObject root, string typeName)
+        {
+            foreach (Component component in root.GetComponentsInChildren<Component>(true))
+            {
+                for (Type type = component == null ? null : component.GetType(); type != null; type = type.BaseType)
+                {
+                    if (type.Name == typeName)
+                    {
+                        return component;
+                    }
+                }
+            }
+            return null;
+        }
+
         private static string PickTexture(string material, Dictionary<string, string> mtlTextures, string[] pngs,
-            string modelBase, string[] resourceNames, out string reason)
+            string modelBase, string[] resourceNames)
         {
             string file;
             if (mtlTextures.TryGetValue(material, out file))
@@ -199,27 +143,19 @@ namespace OneWayTransfers
                 string fromMtl = FindResource(resourceNames, file);
                 if (fromMtl != null)
                 {
-                    reason = "from .mtl";
                     return fromMtl;
                 }
             }
             if (!string.IsNullOrEmpty(material))
             {
-                string byMaterial = pngs.FirstOrDefault(n => Stem(n).IndexOf(material, StringComparison.OrdinalIgnoreCase) >= 0);
+                string byMaterial = pngs.FirstOrDefault(n => Has(Stem(n), material));
                 if (byMaterial != null)
                 {
-                    reason = "name matches material";
                     return byMaterial;
                 }
             }
-            string byModel = pngs.FirstOrDefault(n => Stem(n).IndexOf(modelBase, StringComparison.OrdinalIgnoreCase) >= 0);
-            if (byModel != null)
-            {
-                reason = "name matches model";
-                return byModel;
-            }
-            reason = "first texture";
-            return pngs.FirstOrDefault();
+            string byModel = pngs.FirstOrDefault(n => Has(Stem(n), modelBase));
+            return byModel ?? pngs.FirstOrDefault();
         }
 
         private static List<string> ReadMaterialOrder(string objText)
@@ -254,7 +190,8 @@ namespace OneWayTransfers
             return order;
         }
 
-        private static Dictionary<string, string> ReadMaterialTextureFiles(Assembly assembly, string[] resourceNames, string objText)
+        private static Dictionary<string, string> ReadMaterialTextureFiles(Assembly assembly, string[] resourceNames,
+            string objText, string modelBase, string modelToken)
         {
             Dictionary<string, string> result = new Dictionary<string, string>();
 
@@ -272,11 +209,11 @@ namespace OneWayTransfers
             string resource = mtlFile != null ? FindResource(resourceNames, mtlFile) : null;
             if (resource == null)
             {
-                resource = resourceNames.FirstOrDefault(n => n.EndsWith(".mtl", StringComparison.OrdinalIgnoreCase));
+                resource = resourceNames.FirstOrDefault(n => n.EndsWith(".mtl", StringComparison.OrdinalIgnoreCase)
+                    && (Has(Stem(n), modelBase) || Has(Stem(n), modelToken)));
             }
             if (resource == null)
             {
-                MelonLogger.Warning("OneWayTransfers: no .mtl embedded, textures are chosen by name.");
                 return result;
             }
 
@@ -307,26 +244,34 @@ namespace OneWayTransfers
         }
 
 
-        private static string FindMeshResource(string[] resourceNames)
+        private static string FindMeshResource(string[] resourceNames, string modelToken, string[] otherTokens)
         {
-            return resourceNames
+            string[] objs = resourceNames
                 .Where(n => n.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(n => n.IndexOf("gate", StringComparison.OrdinalIgnoreCase) >= 0)
-                .ThenBy(n => n, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            string own = objs.FirstOrDefault(n => Has(Stem(n), modelToken));
+            if (own != null)
+            {
+                return own;
+            }
+            return objs.FirstOrDefault(n => !otherTokens.Any(token => Has(Stem(n), token)));
         }
 
 
-        private static string[] FindPngResources(string[] resourceNames)
+        private static string[] FindPngResources(string[] resourceNames, string modelBase, string modelToken, string[] otherTokens)
         {
             string[] all = resourceNames
                 .Where(n => n.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            string[] albedo = all.Where(n => n.IndexOf("albedo", StringComparison.OrdinalIgnoreCase) >= 0).ToArray();
-            return albedo.Length > 0 ? albedo : all;
+            string[] related = all.Where(n => Has(Stem(n), modelBase) || Has(Stem(n), modelToken)).ToArray();
+            if (related.Length > 0)
+            {
+                return related;
+            }
+            return all.Where(n => Has(Stem(n), "albedo") && !otherTokens.Any(token => Has(Stem(n), token))).ToArray();
         }
-
 
         private static string FindResource(string[] resourceNames, string file)
         {
@@ -339,13 +284,17 @@ namespace OneWayTransfers
             return resourceNames.FirstOrDefault(n => n.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
         }
 
-
         private static string Stem(string resourceName)
         {
             int extension = resourceName.LastIndexOf('.');
             string withoutExtension = extension > 0 ? resourceName.Substring(0, extension) : resourceName;
             int dot = withoutExtension.LastIndexOf('.');
             return dot >= 0 ? withoutExtension.Substring(dot + 1) : withoutExtension;
+        }
+
+        private static bool Has(string text, string token)
+        {
+            return text.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

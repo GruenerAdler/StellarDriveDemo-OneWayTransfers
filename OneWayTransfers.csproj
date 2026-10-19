@@ -13,12 +13,18 @@
     <None Remove="src\Assets\OneWayFluidGate.mtl" />
     <None Remove="src\Assets\OneWayFluidGate.obj" />
     <None Remove="src\Assets\OneWayFluidGate_Albedo.png" />
+    <None Remove="src\Assets\OneWaySignalGate.mtl" />
+    <None Remove="src\Assets\OneWaySignalGate.obj" />
+    <None Remove="src\Assets\OneWaySignalGate_Albedo.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="src\Assets\OneWayFluidGate.mtl" />
     <EmbeddedResource Include="src\Assets\OneWayFluidGate.obj" />
     <EmbeddedResource Include="src\Assets\OneWayFluidGate_Albedo.png" />
+    <EmbeddedResource Include="src\Assets\OneWaySignalGate.mtl" />
+    <EmbeddedResource Include="src\Assets\OneWaySignalGate.obj" />
+    <EmbeddedResource Include="src\Assets\OneWaySignalGate_Albedo.png" />
   </ItemGroup>
 
   <ItemGroup>

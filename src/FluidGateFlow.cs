@@ -11,11 +11,11 @@ using UnityEngine;
 
 namespace OneWayTransfers
 {
-    public static class OneWayGateUpdater
+    public static class FluidGateFlow
     {
+
         public const byte InputSocketId = 1;
         public const byte OutputSocketId = 0;
-
 
         private const float EquilibriumDelta = 0.0001f;
         private const float PressureFlowFactor = 200f;
@@ -28,10 +28,10 @@ namespace OneWayTransfers
             MethodInfo target = HarmonyLib.AccessTools.Method(typeof(FluidValvesUpdater), "Update");
             if (target == null || ShipField == null || ConnectionsField == null)
             {
-                MelonLogger.Error("OneWayTransfers: FluidValvesUpdater.Update or its fields not found, one-way logic inactive.");
+                MelonLogger.Error("OneWayTransfers: FluidValvesUpdater.Update or its fields not found, fluid gate logic inactive.");
                 return;
             }
-            harmony.Patch(target, postfix: new HarmonyLib.HarmonyMethod(typeof(OneWayGateUpdater), nameof(Postfix)));
+            harmony.Patch(target, postfix: new HarmonyLib.HarmonyMethod(typeof(FluidGateFlow), nameof(Postfix)));
         }
 
         public static void Postfix(FluidValvesUpdater __instance, float deltaTime)
@@ -45,7 +45,7 @@ namespace OneWayTransfers
 
             foreach (StatefulPart part in ship.GetAllStatefulParts<SignalSplitterState>())
             {
-                if (part.Settings == null || part.Settings.id != OneWayMod.PartId)
+                if (part.Settings == null || part.Settings.id != FluidGate.PartId)
                 {
                     continue;
                 }
@@ -69,7 +69,6 @@ namespace OneWayTransfers
                 return;
             }
 
-            // Pressure Math
             float pressureDifference = source.CurrentPressure - target.CurrentPressure;
             if (pressureDifference <= EquilibriumDelta)
             {
