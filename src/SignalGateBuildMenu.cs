@@ -9,8 +9,6 @@ using System.Linq;
 
 namespace OneWayTransfers
 {
-    // Setzt das Signal Gate im Bau-Menue direkt hinter den Signal Processor.
-    // Ist dessen Reihe voll (8 Plaetze), entsteht direkt darunter eine eigene Reihe fuer das Gate.
     public static class SignalGateBuildMenu
     {
         private const int RowCapacity = 8;
@@ -68,7 +66,6 @@ namespace OneWayTransfers
                 return;
             }
 
-            // Ist das Gate schon im Menue (z.B. von einem frueheren Aufruf), bleibt alles wie es ist.
             foreach (object tab in tabs)
             {
                 foreach (PartSettings[] parts in PartsOfRows(tab))
