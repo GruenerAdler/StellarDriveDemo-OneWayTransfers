@@ -6,6 +6,6 @@
     "description": "One way fluid and signal gate preventing backflow. Needs SDModKit. Multiplayer: every player needs this mod",
     "ai": "vibecoded",
     "development": "active",
-    "needs":  "sdmodkit",
+    "needs": ["sdmodkit"],
     "thumbnail": "Thumbnail.png"
 }
